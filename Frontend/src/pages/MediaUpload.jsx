@@ -61,11 +61,20 @@ function MediaUpload() {
   function handleFileChange(event) {
     const file = event.target.files?.[0] || null
 
+    if (!file) {
+      setMediaData((currentData) => ({
+        ...currentData,
+        mediaFile: null,
+        mediaPreview: resolveAssetUrl(currentData.mediaFile),
+      }))
+      return
+    }
+
     setMediaData((currentData) => ({
       ...currentData,
       mediaFile: file,
-      mediaPreview: file && file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
-      mediaFileName: file?.name || '',
+      mediaPreview: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
+      mediaFileName: file.name,
     }))
   }
 
@@ -188,7 +197,12 @@ function MediaUpload() {
         <h3 className="text-xl font-black text-neutral-950">Preview</h3>
         <div className="mt-5 grid min-h-48 place-items-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-5">
           {mediaData.mediaPreview ? (
-            <img alt={mediaData.title || 'Media preview'} className="max-h-72 rounded-lg object-contain" src={mediaData.mediaPreview} />
+            <div
+              aria-label={mediaData.title || 'Media preview'}
+              className="h-56 w-full rounded-lg bg-contain bg-center bg-no-repeat"
+              role="img"
+              style={{ backgroundImage: `url("${mediaData.mediaPreview}")` }}
+            />
           ) : (
             <div className="text-center text-sm font-bold text-neutral-500">
               <FileImage className="mx-auto mb-3 h-12 w-12 text-neutral-400" />

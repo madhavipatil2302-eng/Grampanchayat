@@ -8,17 +8,18 @@ import loginRouter from "./Routes/loginroute.js";
 import moduleDataRouter from "./Routes/moduleDataRoute.js";
 import noticeBoardRouter from "./Routes/noticeBoardRoute.js";
 import permissionRouter from "./Routes/permissionroute.js";
+import userAIRouter from "./Routes/UserAI.js";
 
 dotenv.config();
 
 export const app = express();
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 8000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+app.set("trust proxy", true);
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
@@ -30,6 +31,7 @@ app.use((req, res, next) => {
 
   return next();
 });
+app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 
 app.get("/", (req, res) => {
   res.json({
@@ -43,6 +45,8 @@ app.use("/api", homeRouter);
 app.use("/api", permissionRouter);
 app.use("/api", moduleDataRouter);
 app.use("/api", noticeBoardRouter);
+app.use("/api", userAIRouter);
+app.use("/", userAIRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

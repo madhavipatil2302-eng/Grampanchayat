@@ -5,8 +5,10 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   ClipboardList,
+  FileSignature,
   GraduationCap,
   Hash,
+  ImageUp,
   Mail,
   MapPin,
   Phone,
@@ -22,8 +24,6 @@ import { ManageRole } from '../Services/RoleManamentService'
 const emptyRoleData = {
   fullName: '',
   role: '',
-  profilePhoto: null,
-  profilePhotoPreview: '',
   mobileNumber: '',
   alternateMobileNumber: '',
   email: '',
@@ -43,10 +43,12 @@ const emptyRoleData = {
   electionYear: '',
   politicalGroup: '',
   totalVotes: '',
-  signature: null,
-  signaturePreview: '',
   priorityProjects: '',
   pass: '',
+  profilePhoto: null,
+  profilePhotoPreview: '',
+  signature: null,
+  signaturePreview: '',
 }
 
 
@@ -129,25 +131,31 @@ function FieldGroup({ data, fields, onChange, title }) {
   )
 }
 
-function FileField({ accept = 'image/*', label, name, onChange, preview }) {
+function FileField({ fileName, icon: Icon, label, name, onChange, preview }) {
   return (
-    <label className="block">
-      <span className="mb-2 block text-xs font-black uppercase text-neutral-500">{label}</span>
-      <div className="grid gap-4 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 sm:grid-cols-[8rem_1fr] sm:items-center">
-        <div className="grid h-28 w-28 place-items-center overflow-hidden rounded-lg border border-neutral-200 bg-white">
+    <label className="block rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+      <span className="mb-3 flex items-center gap-2 text-xs font-black uppercase text-neutral-500">
+        <Icon className="h-4 w-4 text-emerald-800" />
+        {label}
+      </span>
+      <div className="grid gap-4 sm:grid-cols-[9rem_1fr] sm:items-center">
+        <div className="grid h-32 w-32 place-items-center overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50 text-emerald-800">
           {preview ? (
             <img alt={label} className="h-full w-full object-cover" src={preview} />
           ) : (
-            <UserRound className="h-10 w-10 text-neutral-400" />
+            <Icon className="h-10 w-10" />
           )}
         </div>
-        <input
-          accept={accept}
-          className="block w-full text-sm font-bold text-neutral-700 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-800 file:px-4 file:py-3 file:text-sm file:font-black file:text-white hover:file:bg-emerald-900"
-          name={name}
-          onChange={onChange}
-          type="file"
-        />
+        <div>
+          <input
+            accept="image/*"
+            className="h-12 w-full rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-bold text-neutral-950 outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+            name={name}
+            onChange={onChange}
+            type="file"
+          />
+          <p className="mt-2 break-words text-xs font-bold text-neutral-500">{fileName || 'No file selected'}</p>
+        </div>
       </div>
     </label>
   )
@@ -187,12 +195,16 @@ function RoleManagement() {
 
   function handleFileChange(event) {
     const { files, name } = event.target
-    const file = files?.[0] || null
+    const file = files?.[0]
+
+    if (!file) {
+      return
+    }
 
     setRoleData((currentData) => ({
       ...currentData,
       [name]: file,
-      [`${name}Preview`]: file ? URL.createObjectURL(file) : '',
+      [`${name}Preview`]: URL.createObjectURL(file),
     }))
   }
 
@@ -254,11 +266,7 @@ function RoleManagement() {
         <div className="grid gap-6 lg:grid-cols-[auto_1fr_auto] lg:items-center">
           <div className="grid h-28 w-28 place-items-center rounded-lg border border-white/20 bg-white/10">
             {roleData.profilePhotoPreview ? (
-              <img
-                alt={roleData.fullName || 'Role profile'}
-                className="h-full w-full rounded-lg object-cover"
-                src={roleData.profilePhotoPreview}
-              />
+              <img alt={roleData.fullName || 'Role member'} className="h-full w-full rounded-lg object-cover" src={roleData.profilePhotoPreview} />
             ) : (
               <UserRound className="h-12 w-12 text-emerald-100" />
             )}
@@ -281,25 +289,27 @@ function RoleManagement() {
       </section>
 
       <FieldGroup data={roleData} fields={personalFields} onChange={handleChange} title="Personal Information" />
-      <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-        <h3 className="text-lg font-black text-neutral-950">Uploads</h3>
-        <div className="mt-5 grid gap-5 xl:grid-cols-2">
-          <FileField
-            label="Upload Profile Photo"
-            name="profilePhoto"
-            onChange={handleFileChange}
-            preview={roleData.profilePhotoPreview}
-          />
-          <FileField
-            label="Upload Signature"
-            name="signature"
-            onChange={handleFileChange}
-            preview={roleData.signaturePreview}
-          />
-        </div>
-      </section>
       <FieldGroup data={roleData} fields={contactFields} onChange={handleChange} title="Contact Information" />
       <FieldGroup data={roleData} fields={roleFields} onChange={handleChange} title="Role & Election Information" />
+
+      <section className="grid gap-6 xl:grid-cols-2">
+        <FileField
+          fileName={roleData.profilePhoto?.name}
+          icon={ImageUp}
+          label="Upload Profile Photo"
+          name="profilePhoto"
+          onChange={handleFileChange}
+          preview={roleData.profilePhotoPreview}
+        />
+        <FileField
+          fileName={roleData.signature?.name}
+          icon={FileSignature}
+          label="Upload Signature"
+          name="signature"
+          onChange={handleFileChange}
+          preview={roleData.signaturePreview}
+        />
+      </section>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">

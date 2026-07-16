@@ -99,6 +99,10 @@ function buildMapQuery(panchayatInfo) {
     .join(' ') || 'Chapalgaon Akkalkot Maharashtra'
 }
 
+function isImageMedia(item) {
+  return item?.mediaMimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(item?.mediaFile || '')
+}
+
 function ChapalgaonMap({ panchayatInfo }) {
   const mapQuery = buildMapQuery(panchayatInfo)
   const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(panchayatInfo?.googleMapLink || mapQuery)}&output=embed`
@@ -175,7 +179,7 @@ function Home() {
   const [panchayatInfo, setPanchayatInfo] = useState(null)
   const [villageStatistics, setVillageStatistics] = useState(null)
   const selectedRoleMember = roleMembers.find((member) => (member._id || member.email || member.fullName) === expandedRoleId)
-  const heroImage = panchayatInfo?.panchayatImage ? resolveAssetUrl(panchayatInfo.panchayatImage) : '/image.png'
+  const heroImage = panchayatInfo?.panchayatImage ? resolveAssetUrl(panchayatInfo.panchayatImage) : ''
   const heroVillageName = panchayatInfo?.gramPanchayatName || panchayatInfo?.villageName
   const homeStats = defaultStats.map((stat) => {
     if (stat.titleKey === 'statsPopulationTitle') {
@@ -239,7 +243,7 @@ function Home() {
       const result = await getPublicMediaUploads()
 
       if (!ignoreResult) {
-        setGalleryItems(Array.isArray(result.data) ? result.data.filter((item) => item.mediaFile) : [])
+        setGalleryItems(Array.isArray(result.data) ? result.data : [])
         setGalleryLoading(false)
       }
     }
@@ -291,12 +295,14 @@ function Home() {
   return (
     <div className="-m-4 overflow-hidden bg-[#f4faf8] text-slate-950 sm:-m-8">
       <section className="relative min-h-[520px] overflow-hidden bg-emerald-950 px-5 py-16 text-white sm:px-8 lg:px-12 lg:py-20">
-        <img
-          alt={heroVillageName || 'Chapalgaon Gram Panchayat office'}
-          className="absolute inset-0 h-full w-full object-cover object-center"
-          src={heroImage}
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,44,34,0.96)_0%,rgba(4,78,59,0.9)_42%,rgba(4,78,59,0.45)_72%,rgba(2,44,34,0.25)_100%)]" />
+        {heroImage && (
+          <img
+            alt={heroVillageName || 'Gram Panchayat'}
+            className="absolute inset-0 h-full w-full object-cover object-center"
+            src={heroImage}
+          />
+        )}
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(2,44,34,1)_0%,rgba(4,78,59,0.96)_52%,rgba(12,95,72,0.86)_100%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(16,185,129,0.25),transparent_32%)]" />
         <div className="absolute -left-28 bottom-0 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl" />
         <div className="absolute -right-24 top-0 h-72 w-72 rounded-full bg-amber-300/20 blur-3xl" />
@@ -386,6 +392,7 @@ function Home() {
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {roleMembers.slice(0, 3).map((member) => {
                 const memberId = member._id || member.email || member.fullName
+                const memberPhoto = resolveAssetUrl(member.profilePhoto)
 
                 return (
                   <article
@@ -393,12 +400,8 @@ function Home() {
                     key={memberId}
                   >
                     <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-full border-4 border-emerald-50 bg-slate-50 p-1 shadow-sm">
-                      {member.profilePhoto ? (
-                        <img
-                          alt={member.fullName || member.name || member.role}
-                          className="h-full w-full rounded-full object-cover"
-                          src={resolveAssetUrl(member.profilePhoto)}
-                        />
+                      {memberPhoto ? (
+                        <img alt={member.fullName || member.name || 'Team member'} className="h-full w-full rounded-full object-cover" src={memberPhoto} />
                       ) : (
                         <Users className="h-10 w-10 text-slate-400" />
                       )}
@@ -452,7 +455,7 @@ function Home() {
               <div className="mx-auto grid h-32 w-32 place-items-center overflow-hidden rounded-full border border-[#0b3b75] bg-slate-50 p-1">
                 {selectedRoleMember.profilePhoto ? (
                   <img
-                    alt={selectedRoleMember.fullName || selectedRoleMember.name || selectedRoleMember.role}
+                    alt={selectedRoleMember.fullName || selectedRoleMember.name || 'Team member'}
                     className="h-full w-full rounded-full object-cover"
                     src={resolveAssetUrl(selectedRoleMember.profilePhoto)}
                   />
@@ -528,7 +531,8 @@ function Home() {
           ) : (
             <div className="grid gap-5 md:grid-cols-3">
               {galleryItems.slice(0, 3).map((item) => {
-                const isImage = item.mediaMimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(item.mediaFile || '')
+                const mediaUrl = resolveAssetUrl(item.mediaFile)
+                const isImage = isImageMedia(item)
 
                 return (
                   <article
@@ -536,12 +540,8 @@ function Home() {
                     key={item._id}
                   >
                     <div className="grid h-full place-items-center overflow-hidden bg-slate-50">
-                      {isImage ? (
-                        <img
-                          alt={item.title || item.mediaFileName || 'Gallery media'}
-                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                          src={resolveAssetUrl(item.mediaFile)}
-                        />
+                      {isImage && mediaUrl ? (
+                        <img alt={item.title || item.mediaFileName || 'Gallery media'} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" src={mediaUrl} />
                       ) : (
                         <FileText className="h-12 w-12 text-slate-400" />
                       )}

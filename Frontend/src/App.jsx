@@ -23,6 +23,7 @@ import VillageStatistics from './pages/VillageStatistics'
 import WaterSupply from './pages/WaterSupply'
 import { allPanchayatRoles, role } from './constants/roles'
 import GetOngogingProject from './pages/OngoingProjectUser'
+import UserAI from './pages/UserAI'
 
 const {
   applicationAdmin,
@@ -114,6 +115,11 @@ function App() {
               </RequireRole>
             }
             path="citizen-services"
+          />
+
+          <Route
+            element={<UserAI />}
+            path="user-ai"
           />
           <Route
             element={

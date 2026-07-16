@@ -70,6 +70,7 @@ function ProjectDialog({ onClose, project }) {
   }
 
   const completionPercent = Math.min(Math.max(Number(project.completionPercent || 0), 0), 100)
+  const projectImage = resolveAssetUrl(project.projectImage)
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 px-4 py-6" onClick={onClose}>
@@ -94,17 +95,13 @@ function ProjectDialog({ onClose, project }) {
 
         <div className="grid gap-0 lg:grid-cols-[1.05fr_1fr]">
           <div className="bg-slate-100">
-            {project.projectImage ? (
-              <img
-                alt={project.projectName || 'Ongoing project'}
-                className="h-full min-h-72 w-full object-cover"
-                src={resolveAssetUrl(project.projectImage)}
-              />
-            ) : (
-              <div className="grid min-h-72 place-items-center text-emerald-900">
+            <div className="grid min-h-72 place-items-center text-emerald-900">
+              {projectImage ? (
+                <img alt={project.projectName || 'Project'} className="h-full min-h-72 w-full object-cover" src={projectImage} />
+              ) : (
                 <HardHat className="h-16 w-16" />
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           <div className="p-5">
@@ -223,7 +220,10 @@ function GetOngogingProject() {
         <div className="mt-6 rounded-lg bg-white p-6 text-sm font-bold text-slate-600 shadow-sm">No ongoing projects added yet.</div>
       ) : (
         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {filteredProjects.map((project) => (
+          {filteredProjects.map((project) => {
+            const projectImage = resolveAssetUrl(project.projectImage)
+
+            return (
               <article
                 className="flex h-full cursor-pointer flex-col overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-100"
                 key={project._id}
@@ -233,17 +233,13 @@ function GetOngogingProject() {
                 tabIndex={0}
               >
                 <div className="relative">
-                  {project.projectImage ? (
-                    <img
-                      alt={project.projectName || 'Ongoing project'}
-                      className="h-56 w-full object-cover"
-                      src={resolveAssetUrl(project.projectImage)}
-                    />
-                  ) : (
-                    <div className="grid h-56 place-items-center bg-[#dfeaf4] text-emerald-900">
+                  <div className="grid h-56 place-items-center bg-[#dfeaf4] text-emerald-900">
+                    {projectImage ? (
+                      <img alt={project.projectName || 'Project'} className="h-full w-full object-cover" src={projectImage} />
+                    ) : (
                       <HardHat className="h-12 w-12" />
-                    </div>
-                  )}
+                    )}
+                  </div>
                   <span className={`absolute right-4 top-4 rounded-full px-4 py-2 text-xs font-black shadow-sm ${getStatusClass(project.projectStatus)}`}>
                     {project.projectStatus || 'Ongoing'}
                   </span>
@@ -258,7 +254,8 @@ function GetOngogingProject() {
                   <p className="mt-auto pt-5 text-xs font-black uppercase text-emerald-800">Click to view details</p>
                 </div>
               </article>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

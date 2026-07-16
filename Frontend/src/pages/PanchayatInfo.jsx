@@ -160,12 +160,39 @@ function PanchayatInfo() {
   function handleImageChange(event) {
     const file = event.target.files?.[0] || null
 
+    if (!file) {
+      setFormData((currentData) => ({
+        ...currentData,
+        panchayatImage: null,
+        panchayatImagePreview: resolveAssetUrl(currentData.panchayatImage),
+        panchayatImageName: currentData.panchayatImageName || '',
+      }))
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(file)
+
     setFormData((currentData) => ({
       ...currentData,
       panchayatImage: file,
-      panchayatImagePreview: file ? URL.createObjectURL(file) : '',
-      panchayatImageName: file?.name || '',
+      panchayatImagePreview: objectUrl,
+      panchayatImageName: file.name,
     }))
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setFormData((currentData) => ({
+        ...currentData,
+        panchayatImagePreview: typeof reader.result === 'string' ? reader.result : '',
+      }))
+    }
+    reader.onerror = () => {
+      setFormData((currentData) => ({
+        ...currentData,
+        panchayatImagePreview: objectUrl,
+      }))
+    }
+    reader.readAsDataURL(file)
   }
 
   function handleReset() {
@@ -249,10 +276,11 @@ function PanchayatInfo() {
         <div className="mt-5 grid gap-5 lg:grid-cols-[18rem_1fr] lg:items-center">
           <div className="grid min-h-48 place-items-center overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4">
             {formData.panchayatImagePreview ? (
-              <img
-                alt={formData.gramPanchayatName || 'Panchayat preview'}
-                className="max-h-64 rounded-lg object-contain"
-                src={formData.panchayatImagePreview}
+              <div
+                aria-label={formData.gramPanchayatName || 'Panchayat preview'}
+                className="h-40 w-full rounded-lg bg-contain bg-center bg-no-repeat"
+                role="img"
+                style={{ backgroundImage: `url("${formData.panchayatImagePreview}")` }}
               />
             ) : (
               <div className="text-center text-sm font-bold text-neutral-500">

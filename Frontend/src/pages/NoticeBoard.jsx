@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bell, CalendarDays, CheckCircle2, FileText, FileUp, Filter, Pin, Send, X, XCircle } from 'lucide-react'
+import { Bell, CalendarDays, CheckCircle2, Download, FileUp, Filter, Pin, Send, X, XCircle } from 'lucide-react'
 
 import Toast from '../components/Toast'
 import {
@@ -7,8 +7,8 @@ import {
   createNotice,
   getAdminNotices,
   getPublicNotices,
-  rejectNotice,
   resolveNoticeAssetUrl,
+  rejectNotice,
 } from '../Services/noticeBoardService'
 
 const emptyNotice = {
@@ -17,8 +17,8 @@ const emptyNotice = {
   category: '',
   noticeType: 'Information',
   expiryDate: '',
-  attachment: null,
   isPinned: false,
+  attachment: null,
 }
 
 const creatorRoles = ['ApplicationAdmin', 'GramSevak']
@@ -66,7 +66,7 @@ function statusClass(status) {
 }
 
 function isImageAttachment(path = '') {
-  return /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(path)
+  return /\.(png|jpe?g|gif|webp)$/i.test(path)
 }
 
 function NoticeDialog({ notice, onClose }) {
@@ -74,7 +74,8 @@ function NoticeDialog({ notice, onClose }) {
     return null
   }
 
-  const hasImage = isImageAttachment(notice.attachment)
+  const attachmentUrl = resolveNoticeAssetUrl(notice.attachment)
+  const hasImageAttachment = isImageAttachment(notice.attachment)
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 px-4 py-6" onClick={onClose}>
@@ -91,13 +92,15 @@ function NoticeDialog({ notice, onClose }) {
 
         <div className="grid gap-0 lg:grid-cols-[1.05fr_1fr]">
           <div className="bg-slate-100">
-            {notice.attachment && hasImage ? (
-              <img alt={notice.title || 'Notice attachment'} className="h-full min-h-72 w-full object-cover" src={resolveNoticeAssetUrl(notice.attachment)} />
-            ) : (
-              <div className="grid min-h-72 place-items-center text-emerald-900">
-                {notice.isPinned ? <Pin className="h-16 w-16" /> : <Bell className="h-16 w-16" />}
-              </div>
-            )}
+            <div className="grid min-h-72 place-items-center text-emerald-900">
+              {attachmentUrl && hasImageAttachment ? (
+                <img alt={notice.title || 'Notice attachment'} className="h-full min-h-72 w-full object-cover" src={attachmentUrl} />
+              ) : notice.isPinned ? (
+                <Pin className="h-16 w-16" />
+              ) : (
+                <Bell className="h-16 w-16" />
+              )}
+            </div>
           </div>
 
           <div className="p-5">
@@ -129,9 +132,14 @@ function NoticeDialog({ notice, onClose }) {
               </div>
             </div>
 
-            {notice.attachment && (
-              <a className="mt-5 inline-flex h-11 items-center gap-2 rounded-lg bg-emerald-950 px-5 text-sm font-black text-white hover:bg-emerald-900" href={resolveNoticeAssetUrl(notice.attachment)} rel="noreferrer" target="_blank">
-                <FileText className="h-4 w-4" />
+            {attachmentUrl && (
+              <a
+                className="mt-5 inline-flex h-11 items-center gap-2 rounded-lg bg-emerald-800 px-5 text-sm font-black text-white hover:bg-emerald-900"
+                href={attachmentUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <Download className="h-4 w-4" />
                 Open Attachment
               </a>
             )}
@@ -293,12 +301,18 @@ function NoticeBoard() {
             </select>
             <input className="h-12 rounded-lg border border-slate-200 px-4 text-sm font-bold outline-none focus:border-emerald-700" name="expiryDate" onChange={handleChange} type="date" value={formData.expiryDate} />
             <textarea className="min-h-28 rounded-lg border border-slate-200 p-4 text-sm font-bold outline-none focus:border-emerald-700 md:col-span-2" name="description" onChange={handleChange} placeholder="Notice description" required value={formData.description} />
-            <label className="block rounded-lg border border-dashed border-slate-300 p-4 text-sm font-bold text-slate-600 md:col-span-2">
-              <span className="mb-2 flex items-center gap-2">
+            <label className="block md:col-span-2">
+              <span className="mb-2 flex items-center gap-2 text-xs font-black uppercase text-slate-500">
                 <FileUp className="h-4 w-4 text-emerald-800" />
-                Attachment
+                Upload Attachment
               </span>
-              <input accept="image/*,.pdf,.doc,.docx" className="block w-full text-sm" name="attachment" onChange={handleChange} type="file" />
+              <input
+                accept="image/*,.pdf,.doc,.docx"
+                className="h-12 w-full rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold outline-none focus:border-emerald-700"
+                name="attachment"
+                onChange={handleChange}
+                type="file"
+              />
             </label>
             <label className="inline-flex items-center gap-2 text-sm font-black text-slate-700">
               <input checked={formData.isPinned} name="isPinned" onChange={handleChange} type="checkbox" />
@@ -328,7 +342,8 @@ function NoticeBoard() {
       ) : (
         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {visibleNotices.map((notice) => {
-            const hasImage = isImageAttachment(notice.attachment)
+            const attachmentUrl = resolveNoticeAssetUrl(notice.attachment)
+            const hasImageAttachment = isImageAttachment(notice.attachment)
 
             return (
               <article
@@ -340,13 +355,15 @@ function NoticeBoard() {
                 tabIndex={0}
               >
                 <div className="relative">
-                  {notice.attachment && hasImage ? (
-                    <img alt={notice.title || 'Notice attachment'} className="h-56 w-full object-cover" src={resolveNoticeAssetUrl(notice.attachment)} />
-                  ) : (
-                    <div className="grid h-56 place-items-center bg-[#dfeaf4] text-emerald-900">
-                      {notice.isPinned ? <Pin className="h-12 w-12" /> : <Bell className="h-12 w-12" />}
-                    </div>
-                  )}
+                  <div className="grid h-56 place-items-center bg-[#dfeaf4] text-emerald-900">
+                    {attachmentUrl && hasImageAttachment ? (
+                      <img alt={notice.title || 'Notice attachment'} className="h-full w-full object-cover" src={attachmentUrl} />
+                    ) : notice.isPinned ? (
+                      <Pin className="h-12 w-12" />
+                    ) : (
+                      <Bell className="h-12 w-12" />
+                    )}
+                  </div>
                   <span className={`absolute right-4 top-4 rounded-full px-4 py-2 text-xs font-black shadow-sm ${statusClass(notice.approvalStatus)}`}>
                     {notice.approvalStatus || 'Pending'}
                   </span>

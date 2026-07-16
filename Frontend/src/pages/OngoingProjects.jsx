@@ -137,11 +137,23 @@ function OngoingProjects() {
   function handleImageChange(event) {
     const file = event.target.files?.[0] || null
 
+    if (!file) {
+      setProjectData((currentData) => ({
+        ...currentData,
+        projectImage: null,
+        projectImagePreview: resolveAssetUrl(currentData.projectImage),
+        projectImageName: currentData.projectImageName || '',
+      }))
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(file)
+
     setProjectData((currentData) => ({
       ...currentData,
       projectImage: file,
-      projectImagePreview: file ? URL.createObjectURL(file) : '',
-      projectImageName: file?.name || '',
+      projectImagePreview: objectUrl,
+      projectImageName: file.name,
     }))
   }
 
@@ -238,10 +250,11 @@ function OngoingProjects() {
         <div className="mt-5 grid gap-5 lg:grid-cols-[18rem_1fr] lg:items-center">
           <div className="grid min-h-48 place-items-center overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4">
             {projectData.projectImagePreview ? (
-              <img
-                alt={projectData.projectName || 'Project preview'}
-                className="max-h-64 rounded-lg object-contain"
-                src={projectData.projectImagePreview}
+              <div
+                aria-label={projectData.projectName || 'Project preview'}
+                className="h-40 w-full rounded-lg bg-contain bg-center bg-no-repeat"
+                role="img"
+                style={{ backgroundImage: `url("${projectData.projectImagePreview}")` }}
               />
             ) : (
               <div className="text-center text-sm font-bold text-neutral-500">

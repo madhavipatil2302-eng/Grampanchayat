@@ -20,6 +20,47 @@ function filePath(file) {
   return file ? `/uploads/${file.filename}` : "";
 }
 
+function assetUrl(req, pathValue) {
+  if (!pathValue || /^https?:\/\//i.test(pathValue)) {
+    return pathValue || "";
+  }
+
+  const normalizedPath = pathValue.startsWith("/") ? pathValue : `/${pathValue}`;
+  const publicBaseUrl = process.env.PUBLIC_BACKEND_URL || process.env.BACKEND_URL;
+
+  if (publicBaseUrl) {
+    return `${publicBaseUrl.replace(/\/+$/, "")}${normalizedPath}`;
+  }
+
+  const protocol = req.get("x-forwarded-proto") || req.protocol;
+  const host = req.get("x-forwarded-host") || req.get("host");
+  return `${protocol}://${host}${normalizedPath}`;
+}
+
+function asPlainObject(data) {
+  return data?.toObject ? data.toObject() : data;
+}
+
+function withAssetUrls(req, data, fields) {
+  if (!data) {
+    return data;
+  }
+
+  const item = asPlainObject(data);
+
+  fields.forEach((field) => {
+    if (item[field]) {
+      item[field] = assetUrl(req, item[field]);
+    }
+  });
+
+  return item;
+}
+
+function withAssetUrlsList(req, data, fields) {
+  return data.map((item) => withAssetUrls(req, item, fields));
+}
+
 function userId(req) {
   return req.user?.id || req.user?._id;
 }
@@ -80,7 +121,11 @@ export const createPanchayatInfo = async (req, res) => {
 
     await removeOldPanchayatInfoExcept(data._id);
 
-    return res.status(201).json({ success: true, message: "Panchayat information saved successfully.", data });
+    return res.status(201).json({
+      success: true,
+      message: "Panchayat information saved successfully.",
+      data: withAssetUrls(req, data, ["panchayatImage"]),
+    });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -95,7 +140,10 @@ export const getPanchayatInfos = async (req, res) => {
       await removeOldPanchayatInfoExcept(latestInfo._id);
     }
 
-    return res.status(200).json({ success: true, data: latestInfo ? [latestInfo] : [] });
+    return res.status(200).json({
+      success: true,
+      data: latestInfo ? [withAssetUrls(req, latestInfo, ["panchayatImage"])] : [],
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
@@ -108,7 +156,7 @@ export const getPublicPanchayatInfo = async (req, res) => {
       await removeOldPanchayatInfoExcept(data._id);
     }
 
-    return res.status(200).json({ success: true, data });
+    return res.status(200).json({ success: true, data: withAssetUrls(req, data, ["panchayatImage"]) });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
@@ -139,7 +187,7 @@ export const updatePanchayatInfo = async (req, res) => {
     return res.status(data ? 200 : 404).json({
       success: Boolean(data),
       message: data ? "Panchayat information updated successfully." : "Panchayat information not found.",
-      data,
+      data: withAssetUrls(req, data, ["panchayatImage"]),
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -267,7 +315,11 @@ export const createOngoingProject = async (req, res) => {
       createdBy: userId(req),
     });
 
-    return res.status(201).json({ success: true, message: "Ongoing project saved successfully.", data });
+    return res.status(201).json({
+      success: true,
+      message: "Ongoing project saved successfully.",
+      data: withAssetUrls(req, data, ["projectImage"]),
+    });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -277,7 +329,7 @@ export const createOngoingProject = async (req, res) => {
 export const getOngoingProjects = async (req, res) => {
   try {
     const data = await OngoingProjectModel.find().sort({ createdAt: -1 });
-    return res.status(200).json({ success: true, data });
+    return res.status(200).json({ success: true, data: withAssetUrlsList(req, data, ["projectImage"]) });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
@@ -304,7 +356,7 @@ export const updateOngoingProject = async (req, res) => {
     return res.status(data ? 200 : 404).json({
       success: Boolean(data),
       message: data ? "Ongoing project updated successfully." : "Ongoing project not found.",
-      data,
+      data: withAssetUrls(req, data, ["projectImage"]),
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -335,7 +387,11 @@ export const createMediaUpload = async (req, res) => {
       createdBy: userId(req),
     });
 
-    return res.status(201).json({ success: true, message: "Media saved successfully.", data });
+    return res.status(201).json({
+      success: true,
+      message: "Media saved successfully.",
+      data: withAssetUrls(req, data, ["mediaFile"]),
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
@@ -344,7 +400,7 @@ export const createMediaUpload = async (req, res) => {
 export const getMediaUploads = async (req, res) => {
   try {
     const data = await MediaUploadModel.find().sort({ createdAt: -1 });
-    return res.status(200).json({ success: true, data });
+    return res.status(200).json({ success: true, data: withAssetUrlsList(req, data, ["mediaFile"]) });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
@@ -368,7 +424,7 @@ export const updateMediaUpload = async (req, res) => {
     return res.status(data ? 200 : 404).json({
       success: Boolean(data),
       message: data ? "Media updated successfully." : "Media not found.",
-      data,
+      data: withAssetUrls(req, data, ["mediaFile"]),
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal Server Error" });

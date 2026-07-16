@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, Download, Edit3, FileText, Filter, Image as ImageIcon, Save, Trash2, X } from 'lucide-react'
+import { Download, Edit3, FileText, Filter, Save, Trash2, X } from 'lucide-react'
 
 import Toast from '../components/Toast'
 import { deleteMediaUpload, getPublicMediaUploads, resolveAssetUrl, updateMediaUpload } from '../Services/homeservices'
@@ -34,7 +34,7 @@ function formatDate(value) {
 }
 
 function isImageMedia(media) {
-  return media.mediaMimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(media.mediaFile || '')
+  return media?.mediaMimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(media?.mediaFile || '')
 }
 
 function MediaDialog({ media, onClose }) {
@@ -42,6 +42,7 @@ function MediaDialog({ media, onClose }) {
     return null
   }
 
+  const mediaUrl = resolveAssetUrl(media.mediaFile)
   const isImage = isImageMedia(media)
 
   return (
@@ -59,13 +60,13 @@ function MediaDialog({ media, onClose }) {
 
         <div className="grid gap-0 lg:grid-cols-[1.05fr_1fr]">
           <div className="bg-slate-100">
-            {isImage && media.mediaFile ? (
-              <img alt={media.title || media.mediaFileName || 'Gallery media'} className="h-full min-h-72 w-full object-cover" src={resolveAssetUrl(media.mediaFile)} />
-            ) : (
-              <div className="grid min-h-72 place-items-center text-emerald-900">
+            <div className="grid min-h-72 place-items-center text-emerald-900">
+              {isImage && mediaUrl ? (
+                <img alt={media.title || media.mediaFileName || 'Gallery media'} className="h-full min-h-72 w-full object-cover" src={mediaUrl} />
+              ) : (
                 <FileText className="h-16 w-16" />
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           <div className="p-5">
@@ -91,8 +92,13 @@ function MediaDialog({ media, onClose }) {
               </div>
             </div>
 
-            {media.mediaFile && (
-              <a className="mt-5 inline-flex h-11 items-center gap-2 rounded-lg bg-emerald-950 px-5 text-sm font-black text-white hover:bg-emerald-900" href={resolveAssetUrl(media.mediaFile)} rel="noreferrer" target="_blank">
+            {mediaUrl && (
+              <a
+                className="mt-5 inline-flex h-11 items-center gap-2 rounded-lg bg-emerald-800 px-5 text-sm font-black text-white hover:bg-emerald-900"
+                href={mediaUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
                 <Download className="h-4 w-4" />
                 Open Media
               </a>
@@ -166,13 +172,18 @@ function Gallery() {
   }
 
   function handleEditFileChange(event) {
-    const file = event.target.files?.[0] || null
+    const file = event.target.files?.[0]
+
+    if (!file) {
+      return
+    }
 
     setEditingMedia((currentMedia) => ({
       ...currentMedia,
       mediaFile: file,
-      mediaPreview: file && file.type.startsWith('image/') ? URL.createObjectURL(file) : currentMedia.mediaPreview,
-      mediaFileName: file?.name || currentMedia.mediaFileName,
+      mediaFileName: file.name,
+      mediaMimeType: file.type,
+      mediaPreview: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
     }))
   }
 
@@ -243,6 +254,7 @@ function Gallery() {
       ) : (
         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {filteredMedia.map((media) => {
+            const mediaUrl = resolveAssetUrl(media.mediaFile)
             const isImage = isImageMedia(media)
 
             return (
@@ -255,13 +267,13 @@ function Gallery() {
                 tabIndex={0}
               >
                 <div className="relative">
-                  {isImage && media.mediaFile ? (
-                    <img alt={media.title || media.mediaFileName || 'Gallery media'} className="h-56 w-full object-cover" src={resolveAssetUrl(media.mediaFile)} />
-                  ) : (
-                    <div className="grid h-56 place-items-center bg-[#dfeaf4] text-emerald-900">
+                  <div className="grid h-56 place-items-center bg-[#dfeaf4] text-emerald-900">
+                    {isImage && mediaUrl ? (
+                      <img alt={media.title || media.mediaFileName || 'Gallery media'} className="h-full w-full object-cover" src={mediaUrl} />
+                    ) : (
                       <FileText className="h-12 w-12" />
-                    </div>
-                  )}
+                    )}
+                  </div>
                   <span className="absolute right-4 top-4 rounded-full bg-emerald-800 px-4 py-2 text-xs font-black text-white shadow-sm">
                     {media.category || 'Gallery'}
                   </span>
@@ -285,7 +297,7 @@ function Gallery() {
                             ...media,
                             mediaDate: media.mediaDate ? media.mediaDate.slice(0, 10) : '',
                             mediaFile: null,
-                            mediaPreview: isImage ? resolveAssetUrl(media.mediaFile) : '',
+                            mediaPreview: isImage ? mediaUrl : '',
                           })
                         }}
                         type="button"
@@ -327,7 +339,19 @@ function Gallery() {
               <input className="h-12 rounded-lg border border-neutral-200 px-4 text-sm font-bold outline-none focus:border-emerald-700" name="title" onChange={handleEditChange} placeholder="Title" value={editingMedia.title || ''} />
               <input className="h-12 rounded-lg border border-neutral-200 px-4 text-sm font-bold outline-none focus:border-emerald-700" name="category" onChange={handleEditChange} placeholder="Category" value={editingMedia.category || ''} />
               <input className="h-12 rounded-lg border border-neutral-200 px-4 text-sm font-bold outline-none focus:border-emerald-700" name="mediaDate" onChange={handleEditChange} type="date" value={editingMedia.mediaDate || ''} />
-              <input accept="image/*,.pdf,.doc,.docx" className="block w-full rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm font-bold text-neutral-700 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-800 file:px-4 file:py-2 file:text-sm file:font-black file:text-white" onChange={handleEditFileChange} type="file" />
+              <label className="block md:col-span-2">
+                <span className="mb-2 block text-xs font-black uppercase text-neutral-500">Upload Media File</span>
+                <input
+                  accept="image/*,.pdf,.doc,.docx"
+                  className="h-12 w-full rounded-lg border border-neutral-200 px-4 py-2 text-sm font-bold outline-none focus:border-emerald-700"
+                  name="mediaFile"
+                  onChange={handleEditFileChange}
+                  type="file"
+                />
+                {editingMedia.mediaPreview && (
+                  <img alt="Selected media preview" className="mt-3 h-40 w-full rounded-lg object-cover" src={editingMedia.mediaPreview} />
+                )}
+              </label>
               <textarea className="min-h-28 rounded-lg border border-neutral-200 p-4 text-sm font-bold outline-none focus:border-emerald-700 md:col-span-2" name="description" onChange={handleEditChange} placeholder="Description" value={editingMedia.description || ''} />
             </div>
 
