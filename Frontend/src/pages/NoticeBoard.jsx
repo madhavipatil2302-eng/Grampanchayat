@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bell, CalendarDays, CheckCircle2, Download, FileUp, Filter, Pin, Send, X, XCircle } from 'lucide-react'
+import { Bell, CalendarDays, CheckCircle2, Download, FileText, FileUp, Filter, Pin, Send, X, XCircle } from 'lucide-react'
 
 import Toast from '../components/Toast'
 import {
@@ -167,7 +167,7 @@ function NoticeBoard() {
   const visibleNotices = useMemo(() => {
     const baseNotices = isLoggedIn
       ? notices
-      : notices.filter((notice) => notice.approvalStatus === 'Approved' && notice.isPublished)
+      : notices.filter((notice) => notice.approvalStatus === 'Approved')
 
     if (statusFilter === 'all') {
       return baseNotices
@@ -336,9 +336,17 @@ function NoticeBoard() {
       )}
 
       {loading ? (
-        <div className="mt-6 rounded-lg bg-white p-6 text-sm font-bold text-slate-600 shadow-sm">Loading notices...</div>
+        <div className="mt-6 rounded-lg border border-slate-100 bg-white p-8 text-sm font-bold text-slate-600 shadow-sm">Loading notices...</div>
       ) : visibleNotices.length === 0 ? (
-        <div className="mt-6 rounded-lg bg-white p-6 text-sm font-bold text-slate-600 shadow-sm">No notices available.</div>
+        <div className="mt-6 grid min-h-44 place-items-center rounded-lg border border-dashed border-emerald-200 bg-white p-8 text-center shadow-sm">
+          <div>
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-emerald-50 text-emerald-800">
+              <FileText className="h-7 w-7" />
+            </div>
+            <p className="mt-4 text-base font-black text-slate-800">No notices available.</p>
+            <p className="mt-2 text-sm font-semibold text-slate-500">Approved notices will appear here for citizens.</p>
+          </div>
+        </div>
       ) : (
         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {visibleNotices.map((notice) => {
@@ -355,7 +363,7 @@ function NoticeBoard() {
                 tabIndex={0}
               >
                 <div className="relative">
-                  <div className="grid h-56 place-items-center bg-[#dfeaf4] text-emerald-900">
+                  <div className="grid aspect-[16/9] max-h-56 w-full place-items-center overflow-hidden bg-[#dfeaf4] text-emerald-900">
                     {attachmentUrl && hasImageAttachment ? (
                       <img alt={notice.title || 'Notice attachment'} className="h-full w-full object-cover" src={attachmentUrl} />
                     ) : notice.isPinned ? (
@@ -369,7 +377,7 @@ function NoticeBoard() {
                   </span>
                 </div>
 
-                <div className="flex flex-1 flex-col p-5">
+                <div className="flex min-h-48 flex-1 flex-col bg-white p-5">
                   <p className="text-xs font-black text-emerald-800">{notice.category || notice.noticeType || 'Notice'}</p>
                   <h3 className="mt-2 text-2xl font-black leading-tight text-slate-900">{notice.title || 'Untitled notice'}</h3>
                   <p className="mt-2 line-clamp-3 text-sm font-semibold leading-6 text-slate-600">

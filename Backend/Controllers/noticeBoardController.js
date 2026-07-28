@@ -47,8 +47,6 @@ export const getPublicNotices = async (req, res) => {
   try {
     const data = await NoticeBoardModel.find({
       approvalStatus: "Approved",
-      isPublished: true,
-      $or: [{ expiryDate: { $exists: false } }, { expiryDate: null }, { expiryDate: { $gte: new Date() } }],
     })
       .populate("createdBy", "fullName role")
       .populate("approvedBy", "fullName role")

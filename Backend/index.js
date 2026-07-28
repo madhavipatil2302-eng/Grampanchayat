@@ -8,7 +8,7 @@ import loginRouter from "./Routes/loginroute.js";
 import moduleDataRouter from "./Routes/moduleDataRoute.js";
 import noticeBoardRouter from "./Routes/noticeBoardRoute.js";
 import permissionRouter from "./Routes/permissionroute.js";
-import userAIRouter from "./Routes/UserAI.js";
+import ollamaRouter from "./Routes/Ollama.js";
 
 dotenv.config();
 
@@ -45,8 +45,7 @@ app.use("/api", homeRouter);
 app.use("/api", permissionRouter);
 app.use("/api", moduleDataRouter);
 app.use("/api", noticeBoardRouter);
-app.use("/api", userAIRouter);
-app.use("/", userAIRouter);
+app.use("/api", ollamaRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

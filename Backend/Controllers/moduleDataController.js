@@ -466,7 +466,8 @@ export const getSchemes = async (req, res) => {
     const data = await SchemeModel.find().sort({ featured: -1, createdAt: -1 });
     return res.status(200).json({ success: true, data });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Internal Server Error" });
+    console.error("Error in getSchemes:", error);
+    return res.status(500).json({ success: false, message: error.message, stack: error.stack });
   }
 };
 

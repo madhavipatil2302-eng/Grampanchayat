@@ -116,6 +116,8 @@ function OngoingProjects() {
     }
 
     loadProject()
+
+  
   }, [])
 
   function showToast(nextToast) {
