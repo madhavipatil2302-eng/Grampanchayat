@@ -1,14 +1,17 @@
 import express from "express";
-import { AdminLogin, EmailVirify } from "../Controllers/logincontroller.js";
+import { AdminLogin, AdminLoginPage, CheckIpAccess, EmailVirify, ForGatePassword } from "../Controllers/logincontroller.js";
 import { GetProfile, UpdateProfile } from "../Controllers/profilecontroller.js";
 import { roleManagement } from "../Controllers/roleManagement.js";
 import { VerifyToken } from "../Middleware/auth.js";
 import upload from "../Uploadfile/fileupload.js";
-
+import { Ratelimiting } from "../Controllers/Ratelimiting.js";
 const router = express.Router();
 
-router.post("/admin/verify-email", EmailVirify);
-router.post("/admin/login", AdminLogin);
+router.get("/admin/login", AdminLoginPage);
+router.get("/ip-access", CheckIpAccess);
+router.post("/admin/verify-email",Ratelimiting, EmailVirify);
+router.post("/forget-password", ForGatePassword);
+router.post("/admin/login",Ratelimiting, AdminLogin);
 router.get("/admin/profile", VerifyToken, GetProfile);
 router.patch("/admin/profile", VerifyToken, UpdateProfile);
 router.post(

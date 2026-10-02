@@ -6,15 +6,18 @@ import {
   Home,
   Info,
   Loader2,
+  MessageSquarePlus,
   Mic,
   Paperclip,
+  Search,
   Send,
   Users,
+  Bot,
 } from "lucide-react";
 import { getPublicOngoingProjects, getPublicSchemes, getPublicVillageStatistics } from "../Services/moduleDataService";
 import { UserAI as askUserAI } from "../Services/UserAIService";
 
-const AI_ROBOT_IMAGE = "/AIRobot.png";
+import { Link } from "react-router-dom";
 
 const content = {
   en: {
@@ -168,6 +171,38 @@ function FormattedAiResponse({ text }) {
   );
 }
 
+function UserAssistantRobot({ mini = false, mood = "idle", message = "" }) {
+  return (
+    <div className={`complaint-robot ${mini ? "complaint-robot-mini" : ""} ${mood ? `complaint-robot-${mood}` : ""}`} aria-hidden="true">
+      {message && !mini && <div className="complaint-robot-bubble">{message}</div>}
+      <div className="complaint-robot-glow" />
+      <div className="complaint-robot-character">
+        <div className="complaint-robot-head">
+          <div className="complaint-robot-antenna" />
+          <div className="complaint-robot-ear complaint-robot-ear-left" />
+          <div className="complaint-robot-ear complaint-robot-ear-right" />
+          <div className="complaint-robot-face">
+            <span className="complaint-robot-eye complaint-robot-eye-left" />
+            <span className="complaint-robot-eye complaint-robot-eye-right" />
+            <span className="complaint-robot-mouth" />
+          </div>
+        </div>
+        <div className="complaint-robot-arm complaint-robot-arm-left">
+          <span />
+        </div>
+        <div className="complaint-robot-arm complaint-robot-arm-right">
+          <span />
+        </div>
+        <div className="complaint-robot-body">
+          <div className="complaint-robot-chest" />
+          <div className="complaint-robot-badge" />
+        </div>
+        <div className="complaint-robot-base" />
+      </div>
+    </div>
+  );
+}
+
 const INTERNAL_DATA_CACHE_MS = 5 * 60 * 1000;
 let internalSystemDataCache = {
   data: null,
@@ -260,6 +295,8 @@ function UserAI() {
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [speechStatus, setSpeechStatus] = useState("");
+  const [robotMood, setRobotMood] = useState("greeting");
+  const [robotMessage, setRobotMessage] = useState("Hi! \u{1F44B}");
   const requestIdRef = useRef(0);
   const recognitionRef = useRef(null);
   const micStreamRef = useRef(null);
@@ -274,6 +311,7 @@ function UserAI() {
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     setLoading(true);
+    setRobotMood("listening");
 
     try {
       const internalSystemData = isInternalSystemQuestion(cleanQuestion)
@@ -296,6 +334,7 @@ function UserAI() {
     } finally {
       if (requestIdRef.current === requestId) {
         setLoading(false);
+        setRobotMood("idle");
       }
     }
   }
@@ -363,11 +402,13 @@ function UserAI() {
 
     recognition.onstart = () => {
       setListening(true);
+      setRobotMood("listening");
       setSpeechStatus("Listening... speak now");
     };
     recognition.onend = () => {
       releaseMicStream();
       setListening(false);
+      setRobotMood("idle");
       setSpeechStatus((status) => (
         status === "Listening... speak now" || status === "Listening... keep speaking"
           ? "Mic stopped. Please click mic again if you want to speak."
@@ -377,6 +418,7 @@ function UserAI() {
     recognition.onerror = (event) => {
       releaseMicStream();
       setListening(false);
+      setRobotMood("idle");
       const errorMessages = {
         "not-allowed": "Mic permission denied. Please allow microphone access in browser settings and Windows privacy settings.",
         "service-not-allowed": "Speech recognition is blocked. Please allow microphone/speech access in browser settings.",
@@ -424,6 +466,19 @@ function UserAI() {
   }
 
   useEffect(() => {
+    const danceTimer = window.setTimeout(() => {
+      setRobotMessage("");
+      setRobotMood("dancing");
+    }, 2200);
+    const idleTimer = window.setTimeout(() => setRobotMood("idle"), 4200);
+
+    return () => {
+      window.clearTimeout(danceTimer);
+      window.clearTimeout(idleTimer);
+    };
+  }, []);
+
+  useEffect(() => {
     return () => {
       recognitionRef.current?.abort();
       micStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -445,20 +500,40 @@ function UserAI() {
       className="min-h-full overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#dffcf1_0,#f7fbff_34%,#f8fafc_68%)] px-4 py-5 text-slate-950 sm:px-6"
       data-no-translate="true"
     >
+
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
+        <div className="mb-2 flex border-b border-slate-200">
+          <Link
+            to="/user-ai"
+            className="flex items-center gap-2 border-b-2 border-emerald-600 px-4 py-3 text-sm font-black text-emerald-700 transition"
+          >
+            <Bot size={18} />
+            Grampanchayat AI
+          </Link>
+          <Link
+            to="/complint-ai"
+            className="flex items-center gap-2 border-b-2 border-transparent px-4 py-3 text-sm font-black text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+          >
+            <MessageSquarePlus size={18} />
+            Complaint AI
+          </Link>
+          <Link
+            to="/track-compilnt"
+            className="flex items-center gap-2 border-b-2 border-transparent px-4 py-3 text-sm font-black text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+          >
+            <Search size={18} />
+            Track Complaint
+          </Link>
+        </div>
         <section className="relative overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-[0_24px_70px_rgba(15,118,110,0.14)]">
           <div className="absolute inset-0 bg-[linear-gradient(135deg,#ecfdf5_0%,#ffffff_46%,#e0f2fe_100%)]" />
           <div className="absolute inset-x-0 bottom-0 h-20 bg-[linear-gradient(90deg,rgba(16,185,129,0.10),rgba(14,165,233,0.10),rgba(255,255,255,0))]" />
           <div className="absolute right-0 top-0 h-full w-1/3 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(240,253,250,0.58))]" />
-          <div className="relative grid min-h-60 gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_360px] lg:items-center lg:py-10">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              <div className="relative grid h-28 w-28 shrink-0 place-items-center rounded-full bg-white shadow-[0_18px_45px_rgba(15,118,110,0.18)] ring-1 ring-emerald-100 sm:h-32 sm:w-32">
+          <div className="relative grid min-h-60 gap-8 px-5 py-8 sm:px-8 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:items-center md:gap-10 lg:py-10">
+            <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
+              <div className="relative grid h-28 w-28 shrink-0 place-items-center overflow-hidden rounded-full bg-white shadow-[0_18px_45px_rgba(15,118,110,0.18)] ring-1 ring-emerald-100 sm:h-32 sm:w-32">
                 <div className="absolute inset-2 rounded-full border border-cyan-100 bg-emerald-50/70" />
-                <img
-                  alt="Grampanchayat AI robot"
-                  className="relative h-24 w-24 object-contain drop-shadow-[0_16px_18px_rgba(20,184,166,0.20)] sm:h-28 sm:w-28"
-                  src={AI_ROBOT_IMAGE}
-                />
+                <UserAssistantRobot mini mood={robotMood} />
               </div>
               <div className="min-w-0">
                 <span className="inline-flex items-center rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-[11px] font-black uppercase text-emerald-800 shadow-sm">
@@ -482,8 +557,8 @@ function UserAI() {
               </div>
             </div>
 
-            <div className="relative hidden min-h-56 lg:block">
-              <div className="absolute bottom-2 right-10 h-44 w-64 rounded-xl border border-white/80 bg-white/65 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur">
+            <div className="relative flex min-h-56 items-center justify-center overflow-hidden rounded-xl px-4 py-6 md:min-h-64 md:px-6">
+              <div className="absolute inset-x-8 bottom-5 h-36 rounded-xl border border-white/80 bg-white/65 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur md:inset-x-2 md:h-40 lg:inset-x-8">
                 <div className="absolute left-5 top-5 h-2 w-20 rounded-full bg-emerald-200" />
                 <div className="absolute bottom-5 left-5 right-5 grid grid-cols-3 gap-2">
                   <span className="h-14 rounded-lg bg-emerald-50" />
@@ -491,12 +566,7 @@ function UserAI() {
                   <span className="h-14 rounded-lg bg-slate-50" />
                 </div>
               </div>
-              <img
-                alt=""
-                aria-hidden="true"
-                className="absolute bottom-0 right-20 h-60 w-60 object-contain drop-shadow-[0_24px_28px_rgba(2,132,199,0.22)]"
-                src={AI_ROBOT_IMAGE}
-              />
+              <UserAssistantRobot message={robotMessage} mood={robotMood} />
             </div>
           </div>
         </section>
@@ -520,8 +590,8 @@ function UserAI() {
 
         <section className="rounded-xl border border-slate-200 bg-white/95 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:p-5">
           <div className="flex items-start gap-4">
-            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-emerald-50 ring-1 ring-emerald-200">
-              <img alt="" aria-hidden="true" className="h-12 w-12 object-contain" src={AI_ROBOT_IMAGE} />
+            <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-emerald-50 ring-1 ring-emerald-200">
+              <UserAssistantRobot mini mood={loading ? "listening" : "idle"} />
             </div>
             <div className="min-w-0 max-w-4xl rounded-xl border border-slate-100 bg-slate-50 px-5 py-4 text-sm font-semibold leading-7 text-slate-700 shadow-sm">
               {ans ? <FormattedAiResponse text={ans} /> : copy.greeting}
@@ -567,9 +637,8 @@ function UserAI() {
                 <Paperclip size={21} />
               </button>
               <button
-                className={`grid h-11 w-11 shrink-0 place-items-center rounded-full transition ${
-                  listening ? "bg-red-100 text-red-700" : "text-slate-500 hover:bg-slate-100"
-                }`}
+                className={`grid h-11 w-11 shrink-0 place-items-center rounded-full transition ${listening ? "bg-red-100 text-red-700" : "text-slate-500 hover:bg-slate-100"
+                  }`}
                 onClick={startVoiceQuestion}
                 title={listening ? "Stop listening" : "Speak question"}
                 type="button"

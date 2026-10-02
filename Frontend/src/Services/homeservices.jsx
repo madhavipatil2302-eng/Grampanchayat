@@ -60,3 +60,32 @@ export async function getAllRoleManagements() {
     }
   }
 }
+
+export async function getComplaintWardRates() {
+  try {
+    const response = await fetch(`${BASE_URL}/api/complaint-rates`, { cache: 'no-store' })
+    const result = await response.json().catch(() => ({}))
+
+    if (!response.ok || result?.success === false) {
+      return {
+        success: false,
+        data: [],
+        message: result?.message || 'Unable to load complaint statistics.',
+      }
+    }
+
+    return {
+      success: true,
+      data: Array.isArray(result?.data) ? result.data : [],
+      message: result?.message || 'Complaint statistics loaded.',
+    }
+  } catch (error) {
+    console.log('Error in getComplaintWardRates service', error)
+
+    return {
+      success: false,
+      data: [],
+      message: 'Unable to load complaint statistics. Please check backend server.',
+    }
+  }
+}

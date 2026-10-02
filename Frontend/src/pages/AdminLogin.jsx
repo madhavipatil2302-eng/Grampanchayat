@@ -51,20 +51,12 @@ function AdminLogin() {
   async function handleLogin(event) {
     event.preventDefault()
     setLoading(true)
-    setMessage('')
     setError('')
 
     const result = await adminLogin(email.trim(), password)
 
     if (result.success) {
-      setMessage('Admin login successful.')
-      showToast({ message: 'Login successful.', type: 'success' })
-      window.setTimeout(() => {
-        navigate('/role-management', {
-          replace: true,
-          state: { toast: 'Login successful.' },
-        })
-      }, 700)
+      navigate('/role-management', { replace: true })
     } else {
       setError(result.message)
       showToast({ message: result.message, type: 'error' })
@@ -121,6 +113,16 @@ function AdminLogin() {
               type="email"
               value={email}
             />
+          </div>
+
+          <div>
+            <button
+              className="text-sm font-bold text-emerald-800 underline underline-offset-4 hover:text-emerald-950"
+              onClick={() => navigate('/forgot-password', { state: { email } })}
+              type="button"
+            >
+              Forgot password?
+            </button>
           </div>
 
           {emailVerified && (

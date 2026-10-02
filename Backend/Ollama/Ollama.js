@@ -1,4 +1,4 @@
-import ollama from "ollama";
+import { GoogleGenAI } from "@google/genai";
 
 const DEFAULT_TIMEOUT_MS = 30000;
 
@@ -86,31 +86,28 @@ function isValidAnswer(answer) {
         && !lowerText.includes("please try again");
 }
 
-async function generateOllamaAnswer(prompt) {
-    const response = await ollama.chat({
-        model: process.env.OLLAMA_MODEL || "llama3.2:3b",
-        keep_alive: "30m",
-        messages: [{ role: "user", content: prompt }],
-        options: {
-            temperature: Number(process.env.OLLAMA_TEMPERATURE || 0.1),
-            num_predict: Number(process.env.OLLAMA_NUM_PREDICT || 140),
-            num_ctx: Number(process.env.OLLAMA_NUM_CTX || 1024),
-            top_p: 0.85,
-            repeat_penalty: 1.1,
-        },
-    });
+async function generateGeminiAnswer(prompt) {
+    const apiKey = process.env.GOOGLE_GEMINI_KEY || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error("Gemini API key is not configured.");
+    }
 
-    const answer = response?.message?.content || "";
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+        model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+        contents: [{ text: prompt }],
+    });
+    const answer = response?.text || "";
 
     if (!isValidAnswer(answer)) {
         throw new Error("AI returned an incomplete answer.");
     }
 
-    return { answer, provider: "ollama" };
+    return { answer, provider: "gemini" };
 }
 
 async function generateAnswer(prompt) {
-    return generateOllamaAnswer(prompt);
+    return generateGeminiAnswer(prompt);
 }
 
 async function OllamaSetup(req, res) {
@@ -143,11 +140,13 @@ async function OllamaSetup(req, res) {
             provider: response.provider,
         });
     } catch (err) {
-        console.log("AI Error", err.message);
+        console.log("Gemini AI Error", err.message);
 
-        return res.status(200).json({
+        return res.status(502).json({
             success: false,
-            message: "Ollama could not generate an answer right now. Please check that the Ollama app is running and the selected model is available.",
+            message: err.message === "Gemini API key is not configured."
+                ? err.message
+                : "Gemini could not generate an answer right now. Please try again.",
         });
     }
 }

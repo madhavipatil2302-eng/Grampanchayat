@@ -1,6 +1,11 @@
 import LoginModel from "../Shema/loginSchma.js";
 import jwt from "jsonwebtoken";
-
+import crypto from "crypto";
+import dotenv from "dotenv";
+dotenv.config();
+import Transporter from "../EmailSetup/Email.js";
+import bcrypt from 'bcrypt';
+import { StoreIpInDB } from "../Shema/IPwithlist.js";
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function normalizeEmail(email = "") {
@@ -30,9 +35,19 @@ function sendSafeUser(user) {
   };
 }
 
+export const AdminLoginPage = (req, res) => {
+  return res.render("Login", { error: "" });
+};
+
 export const EmailVirify = async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
+
+    const ip = req.ip || req.socket.remoteAddress;
+
+    console.log(" This Is The User IP",ip);
+
+    await StoreIpInDB.create({ ip });
 
     if (!emailRegex.test(email)) {
       return res.status(400).json({
@@ -72,6 +87,18 @@ export const EmailVirify = async (req, res) => {
   }
 };
 
+export const CheckIpAccess = async (req, res) => {
+  try {
+    const ip = req.ip || req.socket.remoteAddress;
+    const blocked = await StoreIpInDB.exists({ ip, block: true });
+
+    return res.status(200).json({ allowed: !blocked });
+  } catch (err) {
+    console.log("IP access check error", err);
+    return res.status(500).json({ allowed: false, message: "Unable to verify access." });
+  }
+};
+
 export const AdminLogin = async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
@@ -107,7 +134,12 @@ export const AdminLogin = async (req, res) => {
       });
     }
 
-    if (getSavedPassword(user) !== password) {
+    const savedPassword = String(getSavedPassword(user));
+    const passwordMatches = /^\$2[aby]\$/.test(savedPassword)
+      ? await bcrypt.compare(password, savedPassword)
+      : savedPassword === password;
+
+    if (!passwordMatches) {
       return res.status(401).json({
         success: false,
         message: "Invalid password.",
@@ -129,9 +161,9 @@ export const AdminLogin = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Admin login successful.",
-      user: sendSafeUser(user),
+      message: "Login successful.",
       token,
+      user: sendSafeUser(user),
     });
   } catch (err) {
     console.log(err);
@@ -139,6 +171,43 @@ export const AdminLogin = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
+    });
+  }
+};
+
+export const ForGatePassword = async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid email.",
+      });
+    }
+
+    const user = await LoginModel.findOne({ email });
+    if (user && isActiveAccount(user)) {
+      const temporaryPassword = crypto.randomBytes(9).toString("base64url");
+      user.password = await bcrypt.hash(temporaryPassword, 10);
+      await user.save();
+
+      await Transporter.sendMail({
+        from: process.env.EMAIL || process.env.EMAIL_USER,
+        to: user.email,
+        subject: "Password reset instructions",
+        text: `Your temporary password is ${temporaryPassword}. Sign in and change it as soon as possible.`,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "If the email is registered, password reset instructions will be sent.",
+    });
+  } catch (error) {
+    console.log("Forgot password error", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to process the password reset request. Please try again later.",
     });
   }
 };

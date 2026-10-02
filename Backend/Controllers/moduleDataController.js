@@ -1,8 +1,11 @@
+import { S3Client } from "@aws-sdk/client-s3";
 import MediaUploadModel from "../Shema/mediaUploadSchema.js";
 import OngoingProjectModel from "../Shema/ongoingProjectSchema.js";
 import PanchayatInfoModel from "../Shema/panchayatInfoSchema.js";
 import SchemeModel from "../Shema/schemeSchema.js";
 import VillageStatisticsModel from "../Shema/villageStatisticsSchema.js";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import {storage} from "../Uploadfile/fileupload.js";
 
 function asNumber(value) {
   if (value === "" || value === null || value === undefined) {
@@ -303,6 +306,15 @@ export const deleteVillageStatistics = async (req, res) => {
 export const createOngoingProject = async (req, res) => {
   try {
     const projectImage = req.file;
+
+    const  geturl= await storage.getSignedUrl("getObject", {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: projectImage.key,
+      Expires: 3600, // URL expiration time in seconds (1 hour)
+    });
+
+    console.log("Signed URL:", geturl);
+
     const data = await OngoingProjectModel.create({
       ...req.body,
       startDate: asDate(req.body.startDate),

@@ -1,9 +1,12 @@
 import {
   ArrowRight,
+  BarChart3,
   Bell,
   CalendarDays,
   CircleDollarSign,
+  Clock3,
   ClipboardList,
+  CheckCircle2,
   FileText,
   HomeIcon,
   Mail,
@@ -18,6 +21,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   getAllRoleManagements,
+  getComplaintWardRates,
   getPublicMediaUploads,
   getPublicPanchayatInfo,
   getPublicVillageStatistics,
@@ -103,6 +107,170 @@ function isImageMedia(item) {
   return item?.mediaMimeType?.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(item?.mediaFile || '')
 }
 
+function ComplaintWardChart({ rows, loading, lastUpdated, panchayatInfo }) {
+  const normalizedRows = rows
+    .map((row) => ({
+      ward: String(row.ward || 'Ward not assigned'),
+      total: Number(row.total) || 0,
+      resolved: Number(row.resolved) || 0,
+      open: Number(row.open) || 0,
+    }))
+    .filter((row) => row.total > 0)
+  const totalComplaints = normalizedRows.reduce((sum, row) => sum + row.total, 0)
+  const totalResolved = normalizedRows.reduce((sum, row) => sum + row.resolved, 0)
+  const totalOpen = normalizedRows.reduce((sum, row) => sum + row.open, 0)
+  const highestCount = Math.max(0, ...normalizedRows.map((row) => row.total))
+  const lowestCount = normalizedRows.length ? Math.min(...normalizedRows.map((row) => row.total)) : 0
+  const averageCount = totalComplaints / (normalizedRows.length || 1)
+  const resolutionRate = totalComplaints ? Math.round((totalResolved / totalComplaints) * 100) : 0
+  const workloadTotals = normalizedRows.reduce((totals, row) => {
+    const tone = highestCount > lowestCount && row.total === highestCount
+      ? 'highest'
+      : row.total >= averageCount
+        ? 'average'
+        : 'lower'
+    totals[tone] += row.total
+    return totals
+  }, { highest: 0, average: 0, lower: 0 })
+  const highestShare = totalComplaints ? (workloadTotals.highest / totalComplaints) * 100 : 0
+  const averageShare = totalComplaints ? (workloadTotals.average / totalComplaints) * 100 : 0
+  const lowerShare = totalComplaints ? (workloadTotals.lower / totalComplaints) * 100 : 0
+  const workloadGradient = totalComplaints
+    ? `conic-gradient(#e11d48 0% ${highestShare}%, #f59e0b ${highestShare}% ${highestShare + averageShare}%, #10b981 ${highestShare + averageShare}% ${highestShare + averageShare + lowerShare}%)`
+    : '#e2e8f0'
+
+  function getLoadTone(count) {
+    if (highestCount > lowestCount && count === highestCount) {
+      return { label: 'Highest workload', stripe: 'bg-rose-500', badge: 'bg-rose-50 text-rose-700', bar: 'bg-rose-500' }
+    }
+
+    if (count >= averageCount) {
+      return { label: 'Above average', stripe: 'bg-amber-400', badge: 'bg-amber-50 text-amber-700', bar: 'bg-amber-400' }
+    }
+
+    return { label: 'Lower workload', stripe: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700', bar: 'bg-emerald-500' }
+  }
+
+  return (
+    <section className="mx-auto mt-7 max-w-7xl px-4 sm:px-5" aria-labelledby="complaint-ward-title">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="grid h-12 w-12 place-items-center rounded-xl bg-blue-100 text-blue-800"><ClipboardList size={23} /></span>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-700">Area-wise service status</p>
+            <h2 className="mt-0.5 text-xl font-black text-slate-950 sm:text-2xl" id="complaint-ward-title">Complaints by Ward</h2>
+            <p className="mt-1 text-xs font-medium text-slate-500">Ward-wise complaint summary and resolution progress</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-sm">
+          <Clock3 className="text-blue-700" size={16} />
+          <span>{loading ? 'Updating…' : `Last updated${lastUpdated ? ` · ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : ''}`}</span>
+        </div>
+      </header>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_minmax(270px,1.45fr)]">
+        <article className="flex items-center gap-3 rounded-xl border border-blue-100 bg-white p-4 shadow-sm">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-700"><ClipboardList size={20} /></span>
+          <div><p className="text-xs font-semibold text-slate-500">Total complaints</p><p className="mt-1 text-2xl font-black tabular-nums text-slate-950">{totalComplaints}</p><p className="text-[11px] text-slate-500">Across {normalizedRows.length} wards</p></div>
+        </article>
+        <article className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><CheckCircle2 size={20} /></span>
+          <div><p className="text-xs font-semibold text-slate-500">Resolved</p><p className="mt-1 text-2xl font-black tabular-nums text-emerald-700">{totalResolved}</p><p className="text-[11px] text-emerald-700">{resolutionRate}% of total</p></div>
+        </article>
+        <article className="flex items-center gap-3 rounded-xl border border-amber-100 bg-white p-4 shadow-sm">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-amber-50 text-amber-700"><Clock3 size={20} /></span>
+          <div><p className="text-xs font-semibold text-slate-500">Open</p><p className="mt-1 text-2xl font-black tabular-nums text-amber-700">{totalOpen}</p><p className="text-[11px] text-amber-700">{totalComplaints ? Math.round((totalOpen / totalComplaints) * 100) : 0}% of total</p></div>
+        </article>
+        <article className="flex min-w-0 items-center gap-4 rounded-xl border border-blue-100 bg-white p-4 shadow-sm">
+          <div aria-label="Complaint workload by ward" className="grid h-[92px] w-[92px] shrink-0 place-items-center rounded-full" role="img" style={{ background: workloadGradient }}>
+            <div className="grid h-[62px] w-[62px] place-items-center rounded-full bg-white text-center">
+              <span><strong className="block text-lg leading-5 text-slate-900">{totalComplaints}</strong><span className="text-[9px] font-bold text-slate-500">Total</span></span>
+            </div>
+          </div>
+          <div className="min-w-0 flex-1 space-y-2 text-[11px] font-semibold text-slate-600">
+            <p className="flex items-center justify-between gap-2"><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" />Highest workload</span><strong className="tabular-nums text-slate-800">{workloadTotals.highest}</strong></p>
+            <p className="flex items-center justify-between gap-2"><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" />Above average / open</span><strong className="tabular-nums text-slate-800">{workloadTotals.average}</strong></p>
+            <p className="flex items-center justify-between gap-2"><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />Lower workload</span><strong className="tabular-nums text-slate-800">{workloadTotals.lower}</strong></p>
+          </div>
+        </article>
+      </div>
+
+      <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.85fr)]">
+        <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="flex items-center gap-2 text-sm font-black text-slate-900"><BarChart3 className="text-blue-700" size={18} />Ward workload and resolution progress</h3>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-bold text-slate-500">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Resolved</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" />Open</span>
+            </div>
+          </div>
+
+          {normalizedRows.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 px-4 py-9 text-center">
+              <p className="text-sm font-bold text-slate-700">No complaint counts available yet.</p>
+              <p className="mt-1 text-xs text-slate-500">Ward statistics will appear after complaints are recorded.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {normalizedRows.map((row) => {
+                const tone = getLoadTone(row.total)
+                const rowWidth = `${(row.total / highestCount) * 100}%`
+                const resolvedWidth = `${row.total ? (row.resolved / row.total) * 100 : 0}%`
+                const openWidth = `${row.total ? (row.open / row.total) * 100 : 0}%`
+
+                return (
+                  <div className="grid gap-3 rounded-lg border border-slate-100 px-3 py-3 sm:grid-cols-[minmax(115px,0.65fr)_minmax(0,1.35fr)_120px] sm:items-center sm:gap-4" key={row.ward}>
+                    <div className="flex min-w-0 items-center justify-between gap-2 sm:block">
+                      <p className="truncate text-sm font-black text-slate-900">{row.ward}</p>
+                      <span className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[9px] font-black ${tone.badge}`}>{tone.label}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <div aria-label={`${row.ward}: ${row.total} complaints, ${row.resolved} resolved, ${row.open} open`} className="h-3 overflow-hidden rounded-full bg-slate-100" role="img">
+                        <div className="flex h-full overflow-hidden rounded-full transition-all duration-500" style={{ width: rowWidth }}>
+                          <span className="h-full bg-emerald-500" style={{ width: resolvedWidth }} />
+                          <span className="h-full bg-amber-400" style={{ width: openWidth }} />
+                        </div>
+                      </div>
+                      <p className="mt-1 text-[10px] font-medium text-slate-500">{row.total} {row.total === 1 ? 'complaint' : 'complaints'}</p>
+                    </div>
+                    <p className="text-[10px] font-bold tabular-nums sm:text-right"><span className="text-emerald-700">{row.resolved} resolved</span><span className="px-1 text-slate-300">/</span><span className="text-amber-700">{row.open} open</span></p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 text-[10px] font-semibold text-slate-500">
+            <span className="mr-1">Workload:</span>
+            <span className="rounded bg-rose-50 px-2 py-1 text-rose-700">Highest</span>
+            <span className="rounded bg-amber-50 px-2 py-1 text-amber-700">Above average</span>
+            <span className="rounded bg-emerald-50 px-2 py-1 text-emerald-700">Lower</span>
+          </div>
+        </article>
+
+        <div className="grid min-w-0 gap-4">
+          <ChapalgaonMap panchayatInfo={panchayatInfo} />
+          <article className="rounded-xl border border-blue-100 bg-blue-50/70 p-4">
+            <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-blue-800"><MapPin size={16} />Location overview</h3>
+            <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+              {[
+                ['State', panchayatInfo?.state || 'Maharashtra'],
+                ['District', panchayatInfo?.district || 'Solapur'],
+                ['Taluka', panchayatInfo?.taluka || 'Akkalkot'],
+                ['Village', panchayatInfo?.villageName || 'Chapalgaon'],
+              ].map(([label, value]) => (
+                <div className="min-w-0 border-l-2 border-blue-200 pl-2" key={label}>
+                  <p className="text-[10px] font-semibold text-slate-500">{label}</p>
+                  <p className="mt-0.5 truncate font-bold text-slate-900">{value}</p>
+                </div>
+              ))}
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function ChapalgaonMap({ panchayatInfo }) {
   const mapQuery = buildMapQuery(panchayatInfo)
   const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(panchayatInfo?.googleMapLink || mapQuery)}&output=embed`
@@ -111,59 +279,18 @@ function ChapalgaonMap({ panchayatInfo }) {
   const talukaTitle = panchayatInfo?.taluka || 'Akkalkot'
 
   return (
-    <section className="mx-auto mt-10 max-w-7xl px-5">
-      <div className="grid overflow-hidden rounded-[24px] border border-emerald-100 bg-white shadow-lg shadow-slate-900/5 lg:grid-cols-[1.05fr_1fr]">
-        <div className="p-6 sm:p-8">
-          <div className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-emerald-700">
-            <MapPin size={17} />
-            Location Map
-          </div>
-          <h2 className="text-2xl font-black text-emerald-950 sm:text-3xl">{villageTitle}, {talukaTitle} Taluka</h2>
-
-          <div className="mt-5 grid gap-3 text-sm font-bold text-slate-700 sm:grid-cols-3">
-            <div className="rounded-lg bg-emerald-50 p-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-emerald-700">State</p>
-              <p className="mt-1 text-emerald-950">{panchayatInfo?.state || 'Maharashtra'}</p>
-            </div>
-            <div className="rounded-lg bg-sky-50 p-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-sky-700">District</p>
-              <p className="mt-1 text-sky-950">{panchayatInfo?.district || 'Solapur'}</p>
-            </div>
-            <div className="rounded-lg bg-amber-50 p-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-amber-700">Taluka</p>
-              <p className="mt-1 text-amber-950">{talukaTitle}</p>
-            </div>
-          </div>
+    <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-4">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.13em] text-blue-700"><MapPin size={14} />Location map</p>
+          <h3 className="mt-1 text-sm font-black text-slate-950">{villageTitle}, {talukaTitle} Taluka</h3>
         </div>
-
-        <a
-          aria-label={`Open ${villageTitle} ${talukaTitle} location in Google Maps`}
-          className="group relative block min-h-[320px] overflow-hidden bg-slate-100"
-          href={mapOpenUrl}
-          rel="noreferrer"
-          target="_blank"
-        >
-          <iframe
-            className="pointer-events-none absolute inset-0 h-full w-full border-0 transition duration-300 group-hover:scale-[1.02]"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            src={mapEmbedUrl}
-            title="Chapalgaon Akkalkot Maharashtra map"
-          />
-          <div className="pointer-events-none absolute inset-x-4 bottom-4 rounded-lg bg-white/95 p-4 shadow-xl backdrop-blur-sm sm:inset-x-6">
-            <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-emerald-700 text-white">
-                <MapPin size={21} />
-              </div>
-              <div>
-                <p className="text-sm font-black text-emerald-950">{villageTitle}, {talukaTitle}</p>
-                <p className="text-xs font-bold text-slate-500">Click kara ani Google Maps madhe location open hoil</p>
-              </div>
-            </div>
-          </div>
-        </a>
+        <a aria-label={`Open ${villageTitle} in Google Maps`} className="text-xs font-bold text-blue-700 hover:text-blue-900" href={mapOpenUrl} rel="noreferrer" target="_blank">Open map</a>
       </div>
-    </section>
+      <a aria-label={`Open ${villageTitle} ${talukaTitle} location in Google Maps`} className="group relative block h-[210px] overflow-hidden bg-slate-100" href={mapOpenUrl} rel="noreferrer" target="_blank">
+        <iframe className="pointer-events-none absolute inset-0 h-full w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={mapEmbedUrl} title={`${villageTitle} location map`} />
+      </a>
+    </article>
   )
 }
 
@@ -178,6 +305,9 @@ function Home() {
   const [noticeLoading, setNoticeLoading] = useState(true)
   const [panchayatInfo, setPanchayatInfo] = useState(null)
   const [villageStatistics, setVillageStatistics] = useState(null)
+  const [complaintWardRates, setComplaintWardRates] = useState([])
+  const [complaintRatesLoading, setComplaintRatesLoading] = useState(true)
+  const [complaintRatesUpdatedAt, setComplaintRatesUpdatedAt] = useState(null)
   const selectedRoleMember = roleMembers.find((member) => (member._id || member.email || member.fullName) === expandedRoleId)
   const heroImage = panchayatInfo?.panchayatImage ? resolveAssetUrl(panchayatInfo.panchayatImage) : ''
   const heroVillageName = panchayatInfo?.gramPanchayatName || panchayatInfo?.villageName
@@ -215,6 +345,28 @@ function Home() {
 
     return () => {
       ignoreResult = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let ignoreResult = false
+
+    async function loadComplaintWardRates() {
+      const result = await getComplaintWardRates()
+
+      if (!ignoreResult) {
+        setComplaintWardRates(result.success ? result.data : [])
+        setComplaintRatesUpdatedAt(new Date())
+        setComplaintRatesLoading(false)
+      }
+    }
+
+    loadComplaintWardRates()
+    const intervalId = window.setInterval(loadComplaintWardRates, 30000)
+
+    return () => {
+      ignoreResult = true
+      window.clearInterval(intervalId)
     }
   }, [])
 
@@ -293,8 +445,8 @@ function Home() {
   }, [])
 
   return (
-    <div className="-m-4 overflow-hidden bg-[#f4faf8] text-slate-950 sm:-m-8">
-      <section className="relative min-h-[520px] overflow-hidden bg-emerald-950 px-5 py-16 text-white sm:px-8 lg:px-12 lg:py-20">
+    <div className="-m-4 overflow-hidden bg-[#f2f7fd] text-slate-950 sm:-m-8">
+      <section className="relative min-h-[360px] overflow-hidden bg-[#eaf3fc] px-5 py-10 text-slate-900 sm:px-8 lg:px-12 lg:py-12">
         {heroImage && (
           <img
             alt={heroVillageName || 'Gram Panchayat'}
@@ -302,45 +454,42 @@ function Home() {
             src={heroImage}
           />
         )}
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(2,44,34,1)_0%,rgba(4,78,59,0.96)_52%,rgba(12,95,72,0.86)_100%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(16,185,129,0.25),transparent_32%)]" />
-        <div className="absolute -left-28 bottom-0 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl" />
-        <div className="absolute -right-24 top-0 h-72 w-72 rounded-full bg-amber-300/20 blur-3xl" />
+        <div className="absolute inset-0 bg-[linear-gradient(105deg,rgba(241,247,253,0.97)_0%,rgba(232,242,253,0.9)_55%,rgba(222,237,252,0.76)_100%)]" />
 
         <div className="relative max-w-5xl">
-          <div className="mb-6 flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-bold text-white shadow-lg backdrop-blur-md">
-            <Sparkles size={16} className="text-amber-300" />
+          <div className="mb-5 flex w-fit items-center gap-2 rounded-lg border border-blue-100 bg-white/80 px-3 py-1.5 text-xs font-bold text-blue-900 shadow-sm backdrop-blur-md">
+            <Sparkles size={15} className="text-amber-600" />
             {t('heroBadge')}
           </div>
-          <p className="mb-3 font-bold text-emerald-100">{t('heroSubtitle')}</p>
-          <h1 className="text-4xl font-black leading-[1.15] text-white sm:text-5xl lg:text-6xl">
+          <p className="mb-2 font-bold text-blue-800">{t('heroSubtitle')}</p>
+          <h1 className="text-3xl font-black leading-[1.15] text-slate-950 sm:text-4xl lg:text-5xl">
             {t('heroTitlePrimary')}
-            <span className="mt-2 block bg-gradient-to-r from-amber-200 via-white to-emerald-200 bg-clip-text text-transparent">
+            <span className="mt-1 block text-blue-800">
               {heroVillageName || t('heroTitleHighlight')}
             </span>
           </h1>
-          <p className="mt-6 max-w-3xl text-base font-medium leading-8 text-emerald-50/90 sm:text-lg">
+          <p className="mt-4 max-w-3xl text-base font-medium leading-7 text-slate-600 sm:text-lg">
             {t('heroDescription')}
           </p>
 
-          <div className="mt-9 flex flex-wrap gap-4">
-            <button className="group flex items-center gap-3 rounded-2xl bg-white px-7 py-4 text-sm font-black text-emerald-950 shadow-2xl transition hover:-translate-y-1">
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button className="group flex items-center gap-3 rounded-lg bg-blue-800 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-blue-900">
               {t('heroPrimaryButton')}
               <ArrowRight size={18} className="transition group-hover:translate-x-1" />
             </button>
-            <button className="flex items-center gap-3 rounded-2xl border border-white/30 bg-white/10 px-7 py-4 text-sm font-black text-white backdrop-blur-md transition hover:bg-white/20">
+            <button className="flex items-center gap-3 rounded-lg border border-blue-200 bg-white/80 px-5 py-3 text-sm font-black text-blue-900 transition hover:bg-white">
               <ClipboardList size={18} />
               {t('heroSecondaryButton')}
             </button>
           </div>
 
-          <div className="mt-10 flex flex-wrap gap-5 text-sm font-bold text-white">
+          <div className="mt-6 flex flex-wrap gap-5 text-sm font-bold text-slate-700">
             <div className="flex items-center gap-2">
-              <ShieldCheck size={20} className="text-emerald-300" />
+              <ShieldCheck size={20} className="text-blue-700" />
               {t('heroFeatureOne')}
             </div>
             <div className="flex items-center gap-2">
-              <ClipboardList size={20} className="text-emerald-300" />
+              <ClipboardList size={20} className="text-blue-700" />
               {t('heroFeatureTwo')}
             </div>
           </div>
@@ -373,7 +522,7 @@ function Home() {
         </div>
       </section>
 
-      <ChapalgaonMap panchayatInfo={panchayatInfo} />
+      <ComplaintWardChart rows={complaintWardRates} loading={complaintRatesLoading} lastUpdated={complaintRatesUpdatedAt} panchayatInfo={panchayatInfo} />
 
       <section className="mt-8 bg-[#eef8f3] px-4 py-8">
         <div className="mx-auto max-w-7xl">

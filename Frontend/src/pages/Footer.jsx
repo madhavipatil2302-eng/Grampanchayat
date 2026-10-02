@@ -1,3 +1,5 @@
+import { Mail, MapPin, Phone } from 'lucide-react'
+
 const footerQuickLinks = [
   'About Panchayat',
   'Village Development Plan',
@@ -14,40 +16,35 @@ const footerServiceLinks = [
 
 function Footer() {
   return (
-    <footer id="contact-footer" className="bg-[#032f25] text-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="portal-footer mt-8 overflow-hidden rounded-t-xl border border-slate-200 bg-[#eaf3fc] text-slate-800" id="contact-footer">
+      <div aria-hidden="true" className="grid h-1 grid-cols-3">
+        <span className="bg-[#e87825]" />
+        <span className="bg-white" />
+        <span className="bg-[#13804b]" />
+      </div>
+      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-9 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1.2fr] lg:px-7">
         <div>
           <div className="flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10">
-              <span className="text-2xl">GP</span>
-            </div>
-            <div>
-              <h3 className="font-black">Chapalgaon Gram Panchayat</h3>
-              <p className="text-xs text-emerald-200">Tal. Akkalkot, Dist. Solapur</p>
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-white p-1.5">
+              <img alt="State Emblem of India" className="max-h-full max-w-full object-contain" src="/emblem-of-india.svg" />
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-sm font-black text-slate-900 sm:text-base">Chapalgaon Gram Panchayat</h3>
+              <p className="mt-1 text-xs text-slate-600">Tal. Akkalkot, Dist. Solapur</p>
             </div>
           </div>
-          <p className="mt-5 text-sm leading-7 text-emerald-100/80">
-            Dedicated official digital portal for village development, citizen services, and transparent administration.
+          <p className="mt-4 max-w-sm text-sm leading-6 text-slate-600">
+            Dedicated digital portal for village development, citizen services, and transparent administration.
           </p>
-          <div className="mt-5 flex gap-3">
-            {['GP', '@', 'Tel'].map((item) => (
-              <button
-                className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-xs font-black transition hover:bg-emerald-600"
-                key={item}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div>
-          <h4 className="text-lg font-black">Important Links</h4>
-          <ul className="mt-5 space-y-3 text-sm text-emerald-100/80">
+          <h4 className="text-sm font-black text-slate-900">Important Links</h4>
+          <ul className="mt-4 space-y-2.5 text-sm text-slate-600">
             {footerQuickLinks.map((link) => (
               <li key={link}>
-                <a className="flex items-center gap-2 transition hover:translate-x-1 hover:text-white" href="#">
-                  <span className="text-base">&gt;</span>
+                <a className="flex items-center gap-2 transition hover:text-blue-800" href="#">
+                  <span aria-hidden="true" className="text-orange-700">›</span>
                   {link}
                 </a>
               </li>
@@ -56,12 +53,12 @@ function Footer() {
         </div>
 
         <div>
-          <h4 className="text-lg font-black">Citizen Services</h4>
-          <ul className="mt-5 space-y-3 text-sm text-emerald-100/80">
+          <h4 className="text-sm font-black text-slate-900">Citizen Services</h4>
+          <ul className="mt-4 space-y-2.5 text-sm text-slate-600">
             {footerServiceLinks.map((link) => (
               <li key={link}>
-                <a className="flex items-center gap-2 transition hover:translate-x-1 hover:text-white" href="#">
-                  <span className="text-base">&gt;</span>
+                <a className="flex items-center gap-2 transition hover:text-blue-800" href={link === 'Property Tax Payment' ? '/property-tax/check' : '#'}>
+                  <span aria-hidden="true" className="text-orange-700">›</span>
                   {link}
                 </a>
               </li>
@@ -69,29 +66,27 @@ function Footer() {
           </ul>
         </div>
 
-        <div className="rounded-[24px] border border-white/10 bg-white/5 p-6">
-          <h4 className="text-lg font-black">Contact Us</h4>
-          <div className="mt-5 space-y-4 text-sm text-emerald-100/80">
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 shrink-0 text-emerald-300">Loc</span>
+        <div className="rounded-lg border border-blue-100 bg-white/70 p-4 sm:col-span-2 lg:col-span-1">
+          <h4 className="text-sm font-black text-slate-900">Contact Us</h4>
+          <div className="mt-4 space-y-3 text-sm text-slate-600">
+            <div className="flex items-start gap-2.5">
+              <MapPin className="mt-0.5 shrink-0 text-blue-700" size={16} />
               <p>Gram Panchayat Office, Chapalgaon, Akkalkot, Solapur</p>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="shrink-0 text-emerald-300">Tel</span>
+            <div className="flex items-center gap-2.5">
+              <Phone className="shrink-0 text-blue-700" size={16} />
               <a href="tel:+919422647642">+91 9422647642</a>
             </div>
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 shrink-0 text-emerald-300">@</span>
-              <a className="break-all" href="mailto:gajadhanetathaget@gmail.com">
-                gajadhanetathaget@gmail.com
-              </a>
+            <div className="flex items-start gap-2.5">
+              <Mail className="mt-0.5 shrink-0 text-blue-700" size={16} />
+              <a className="break-all" href="mailto:gajadhanetathaget@gmail.com">gajadhanetathaget@gmail.com</a>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-5 text-center text-xs text-emerald-100/60 sm:flex-row">
+      <div className="border-t border-blue-200">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-5 py-4 text-center text-[11px] text-slate-500 sm:flex-row sm:px-7">
           <p>© {new Date().getFullYear()} Chapalgaon Gram Panchayat. All rights reserved.</p>
           <p>Designed for Digital Village Administration</p>
         </div>
